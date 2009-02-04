@@ -87,6 +87,10 @@ module Webrat
         { name => escaped_value }
       end
     end
+
+    def to_multipart_param
+      { name => escaped_value }
+    end
     
     def set(value)
       @value = value
@@ -94,6 +98,10 @@ module Webrat
     
     def unset
       @value = default_value
+    end
+    
+    def name
+      Webrat::XML.attribute(@element, "name")
     end
     
   protected
@@ -118,10 +126,6 @@ module Webrat
         return parent if parent.name == 'form'
         parent = parent.parent
       end
-    end
-    
-    def name
-      Webrat::XML.attribute(@element, "name")
     end
     
     def escaped_value
@@ -342,7 +346,11 @@ module Webrat
       if @value.nil?
         super
       else
-        replace_param_value(super, @value, test_uploaded_file)
+        if Webrat.configuration.mode == :merb
+          nil
+        else
+          replace_param_value(super, @value, test_uploaded_file)
+        end
       end
     end
     
