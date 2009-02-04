@@ -40,12 +40,41 @@ module Webrat
     
     def params
       all_params = {}
-      
-      fields.each do |field|
-        next if field.to_param.nil?
-        merge(all_params, field.to_param)
+      # FIXME: maybe there's a cleaner way to do this?
+      if Webrat.configuration.mode == :merb
+
+        if (filefield = fields.detect { |field| field.class == Webrat::FileField && !field.value.blank?})
+          file = File.open(filefield.value)
+         
+          multipart_params = {}
+          fields.each do |field|
+            merge(multipart_params, field.to_multipart_param)
+          end
+
+          multipart_params[filefield.name] = file
+          multipart = Merb::Test::MultipartRequestHelper::Post.new(multipart_params)
+          query, content_type = multipart.to_multipart
+          
+          @session.header("CONTENT_TYPE", content_type)
+          @session.header("CONTENT_LENGTH", query.size)
+
+          all_params[:input] = query
+        else
+          fields.each do |field|
+            next if field.to_param.nil?
+            merge(all_params, field.to_param)
+          end
+        end
+
+      else
+
+        fields.each do |field|
+          next if field.to_param.nil?
+          merge(all_params, field.to_param)
+        end
+
       end
-      
+ 
       all_params
     end
     
